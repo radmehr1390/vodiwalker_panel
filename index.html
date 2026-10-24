@@ -108,6 +108,10 @@
 .real-preview .preview-blocked small{color:var(--muted);font-size:.75rem;max-width:230px}
 .real-preview iframe:not([src=""]){background:#fff}
 .real-preview .browser{z-index:3}
+.preview-open-link{position:absolute;z-index:6;right:10px;bottom:8px;padding:7px 10px;border-radius:8px;background:linear-gradient(110deg,#65f2e3,#a98bff);color:#08111a;font-size:11px;font-weight:900;box-shadow:0 8px 22px #0006;pointer-events:none;transition:transform .2s,box-shadow .2s}
+.project:hover .preview-open-link{transform:translateY(-3px);box-shadow:0 12px 28px #0008}
+.real-preview.scroll-mode{cursor:grabbing}
+.real-preview .preview-blocked{pointer-events:none}
 @media(max-width:560px){.real-preview{height:235px}.real-preview iframe{height:760px}}
 
 </style>
@@ -154,26 +158,39 @@ if('IntersectionObserver' in window){
 
 document.querySelectorAll('.real-preview').forEach(preview=>{
  const frame=preview.querySelector('iframe');
- let dragging=false,lastY=0,offset=0;
+ let pressed=false,dragging=false,lastY=0,offset=0,moved=false;
  preview.addEventListener('pointerdown',e=>{
   if(e.pointerType==='touch') return;
-  dragging=true;lastY=e.clientY;
-  preview.classList.add('scroll-mode');
-  try{preview.setPointerCapture(e.pointerId)}catch(_){}
-  e.preventDefault();
+  pressed=true;dragging=false;moved=false;lastY=e.clientY;
  });
  preview.addEventListener('pointermove',e=>{
-  if(!dragging||e.pointerType==='touch')return;
-  const delta=e.clientY-lastY;lastY=e.clientY;
+  if(!pressed||e.pointerType==='touch')return;
+  const delta=e.clientY-lastY;
+  if(Math.abs(delta)>2){dragging=true;moved=true;preview.classList.add('scroll-mode')}
+  lastY=e.clientY;
+  if(!dragging)return;
   const view=preview.querySelector('.real-frame-window');
   const maxScroll=Math.max(0,425-view.clientHeight);
   offset=Math.max(-maxScroll,Math.min(0,offset+delta*1.5));
   if(frame)frame.style.setProperty('--scroll-y',offset+'px');
  });
- const stop=()=>{dragging=false;preview.classList.remove('scroll-mode')};
+ preview.addEventListener('click',e=>{
+  if(moved){e.preventDefault();e.stopPropagation()}
+ });
+ const stop=()=>{pressed=false;dragging=false;preview.classList.remove('scroll-mode')};
  preview.addEventListener('pointerup',stop);
  preview.addEventListener('pointercancel',stop);
- preview.addEventListener('lostpointercapture',stop);
+});
+document.querySelectorAll('.project').forEach(card=>{
+ card.setAttribute('aria-label','برای باز کردن وب‌سایت کلیک کنید');
+ const p=card.querySelector('.preview');
+ if(p&&!p.querySelector('.preview-open-link')){
+  const href=card.getAttribute('href');
+  const link=document.createElement('span');
+  link.className='preview-open-link';
+  link.textContent='↗ باز کردن سایت';
+  p.appendChild(link);
+ }
 });
 
 </script>
