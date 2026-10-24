@@ -154,21 +154,26 @@ if('IntersectionObserver' in window){
 
 document.querySelectorAll('.real-preview').forEach(preview=>{
  const frame=preview.querySelector('iframe');
- let timer=null, active=false, startY=0, startScroll=0;
+ let dragging=false,lastY=0,offset=0;
  preview.addEventListener('pointerdown',e=>{
   if(e.pointerType==='touch') return;
-  startY=e.clientY; active=false;
-  timer=setTimeout(()=>{active=true;preview.classList.add('scroll-mode');if(frame)frame.style.pointerEvents='auto'},180);
+  dragging=true;lastY=e.clientY;
+  preview.classList.add('scroll-mode');
+  try{preview.setPointerCapture(e.pointerId)}catch(_){}
+  e.preventDefault();
  });
  preview.addEventListener('pointermove',e=>{
-  if(!active||e.pointerType==='touch')return;
-  const delta=e.clientY-startY;
-  if(frame){try{frame.contentWindow.postMessage({type:'portfolio-preview-scroll',delta},'*')}catch(_){}}
+  if(!dragging||e.pointerType==='touch')return;
+  const delta=e.clientY-lastY;lastY=e.clientY;
+  const view=preview.querySelector('.real-frame-window');
+  const maxScroll=Math.max(0,425-view.clientHeight);
+  offset=Math.max(-maxScroll,Math.min(0,offset+delta*1.5));
+  if(frame)frame.style.setProperty('--scroll-y',offset+'px');
  });
- ['pointerup','pointerleave','pointercancel'].forEach(ev=>preview.addEventListener(ev,()=>{
-  clearTimeout(timer);active=false;preview.classList.remove('scroll-mode');
-  if(frame)frame.style.pointerEvents='';
- }));
+ const stop=()=>{dragging=false;preview.classList.remove('scroll-mode')};
+ preview.addEventListener('pointerup',stop);
+ preview.addEventListener('pointercancel',stop);
+ preview.addEventListener('lostpointercapture',stop);
 });
 
 </script>
